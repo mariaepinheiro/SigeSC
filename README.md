@@ -18,7 +18,7 @@ The framework is applied to the state of Santa Catarina, Brazil (≈8.4 million 
 ## Repository Structure
 
 ```
-SigeSC/
+ SigeSC/
 ├── config.jl                              # Central path configuration
 ├── README.md
 ├── data/
@@ -30,9 +30,15 @@ SigeSC/
 │   ├── 05_ipf_member_allocation.jl        # IPF + MILP rounding (Sections 2.2–2.3)
 │   └── 10_allocation_model.jl             # Allocation MILP (Section 3)
 │
-└── analysis/
-    ├── allocation_quality.jl              # Allocation quality and violations (Figures 4–5)
-    └── family_composition_quality.jl      # Intra-household correlations (Figures 1–3)
+├── analysis/
+│   ├── allocation_quality.jl              # Allocation quality and violations (Figures 4–5)
+│   └── family_composition_quality.jl      # Intra-household correlations (Figures 1–3)
+│
+└── output/                                # Generated datasets (see GitHub Release v1.0)
+    ├── stage2_attributes/
+    ├── stage3_population/
+    ├── stage4_update_2025/
+    └── results/
 ```
 
 **Scope.** This repository contains the optimization models and validation scripts. Data preparation scripts (residence registry processing, population projection to 2025, census tract matching) are available upon request to the corresponding author.
