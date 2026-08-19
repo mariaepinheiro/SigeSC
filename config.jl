@@ -30,11 +30,10 @@ const PATH_STAGE3 = joinpath(BASE_DIR, "output", "stage3_population")
 const PATH_STAGE4 = joinpath(BASE_DIR, "output", "stage4_update_2025")
 
 # ── Final results ────────────────────────────────────────────────────────────
-const PATH_RESULTS    = joinpath(BASE_DIR, "output", "results")
-const PATH_BENCHMARKS = joinpath(BASE_DIR, "output", "benchmarks")
+const PATH_RESULTS = joinpath(BASE_DIR, "output", "results")
 
 # ── Create output directories if they don't exist ────────────────────────────
 for p in [PATH_STAGE1, PATH_STAGE2, PATH_STAGE3, PATH_STAGE4,
-          PATH_RESULTS, PATH_BENCHMARKS]
+          PATH_RESULTS]
     mkpath(p)
 end
