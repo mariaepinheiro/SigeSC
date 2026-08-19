@@ -1,20 +1,11 @@
 # =============================================================================
 # 10_allocation_model.jl
-# Household-to-residence allocation via MILP / LP (Section 3)
+# Household-to-residence allocation via MILP (Section 3)
 #
 # Implements the allocation model (P2) from the paper:
 #   - Compatibility-based class grouping of families and residences
 #   - MILP formulation with composite objective (quality + volume − penalty)
-#   - Solved as LP relaxation
-#   - Uses HiGHS with the primal simplex method
-#
-# IMPORTANT: the objective uses a tract-level target ratio τ_s, one value
-# PER CENSUS TRACT, not a single τ per municipality. Using a single τ_local
-# for the whole municipality changes the objective and has been observed to
-# produce FRACTIONAL LP solutions on some municipalities (e.g. Joinville,
-# São Bento do Sul, São José, Schroeder). The per-tract τ_s below matches the
-# production model and is the version certified to give integral solutions
-# on all 295 municipalities.
+#   - Solved with HiGHS
 # =============================================================================
 
 using CSV, DataFrames, StatsBase, JuMP, HiGHS, Dates
@@ -119,7 +110,7 @@ Returns a DataFrame of (ID_Familia, ID_R) pairings.
 function solve_allocation(df_residences::AbstractDataFrame,
                           df_families::DataFrame,
                           male_targets::Dict, female_targets::Dict)
-    # ── Fallback ratio, used only when a tract has no valid residences ────
+    # ── Municipal-level fallback ratio ────────────────────────────────────
     mean_nm = isempty(df_families) ? 0.0 : mean(df_families.N_M)
 
     mask_valid = (df_residences.ESPECIE .== 1) .&
@@ -130,10 +121,8 @@ function solve_allocation(df_residences::AbstractDataFrame,
     τ_local = mean_bt > 0 ? (mean_nm / mean_bt) : 2.0
 
     # ── Tract-level target ratio τ_s (Section 5.2) ────────────────────────
-    # One value per census tract, NOT a single value for the whole
-    # municipality. This is what the certified integrality result assumes;
-    # replacing τ_s by a single τ_local changes the objective and has been
-    # observed to yield fractional LP optima on some municipalities.
+    # One value per census tract. The municipal-level τ_local is used only
+    # as a fallback when a tract has no valid residences.
     τ_por_setor = Dict{Any, Float64}()
     for s in unique(df_residences.SETOR)
         mask_s = mask_valid .& (df_residences.SETOR .== s)
@@ -178,13 +167,12 @@ function solve_allocation(df_residences::AbstractDataFrame,
     # Unique (tract, NB) combinations for spatial target constraints
     tract_nb_combos = unique([(Kh[j][3], Kh[j][4]) for j in eachindex(Kh)])
 
-    # ── Build and solve LP (P2 relaxation) ────────────────────────────────
+    # ── Build and solve MILP (P2) ─────────────────────────────────────────
     model = Model(HiGHS.Optimizer)
     set_silent(model)
-    set_attribute(model, "solver", "simplex")  # Primal simplex (Section 5.2)
 
-    # Decision variables: y^r_f >= 0
-    @variable(model, y[p in pairs] >= 0)
+    # Decision variables: y^r_f ∈ Z≥0 (P2e)
+    @variable(model, y[p in pairs] >= 0, Int)
     # Slack variables: δ_ℓ >= 0 (P2e)
     @variable(model, δ[tract_nb_combos, 1:2] >= 0)
 
@@ -210,9 +198,7 @@ function solve_allocation(df_residences::AbstractDataFrame,
         @constraint(model, sum(y[p] for p in ps) <= M_ℓ + δ[(s, nb), g])
     end
 
-    # Objective (P2a): maximize weighted allocation − penalty for slack.
-    # NOTE: τ_por_setor[Kh[p[2]][3]] — the ratio of the RESIDENCE's tract,
-    # not a single municipality-wide value.
+    # Objective (P2a): maximize weighted allocation − penalty for slack
     α = 1.0
     β = 1.0
     @objective(model, Max,
@@ -223,19 +209,6 @@ function solve_allocation(df_residences::AbstractDataFrame,
             for (s, nb) in tract_nb_combos for g in 1:2))
 
     optimize!(model)
-
-    # ── Integrality check ──────────────────────────────────────────────
-    # The certified result (peel + block decomposition + exact
-    # determinants) guarantees integrality for this objective. If it ever
-    # fails — e.g. after a change to τ, β, or the data — fail loudly rather
-    # than silently rounding.
-    max_frac = isempty(pairs) ? 0.0 :
-        maximum(abs(JuMP.value(y[p]) - round(JuMP.value(y[p]))) for p in pairs)
-    if max_frac > 1e-6
-        @error "Fractional LP solution detected" max_frac
-        error("solve_allocation: LP relaxation is not integral " *
-              "(max deviation = $max_frac). Aborting instead of rounding.")
-    end
 
     return unpack_solution(pairs, y, Kf, Kh, families_by_class,
                            residences_by_class)
