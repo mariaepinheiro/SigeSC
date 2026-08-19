@@ -36,7 +36,7 @@ One additional file is sourced directly from IBGE:
 - **Description**: Aggregate counts of occupied private dwellings per census tract, stratified by dwelling subtype, number of bathrooms, and head gender/ethnicity.
 - **Source**: https://www.ibge.gov.br/estatisticas/sociais/saude/22827-censo-demografico-2022.html (Aggregates section → Santa Catarina)
 - **Place in**: `data/raw/aggregates/`
-- **Used by**: `10_allocation_model.jl`, `benchmark_lp_vs_milp.jl`
+- **Used by**: `10_allocation_model.jl`
 
 ## Municipality code list
 
