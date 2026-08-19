@@ -3,17 +3,17 @@
 Code and reproduction materials for the paper:
 
 > **Synthetic Population Generation and Georeferenced Household Allocation via Iterative Proportional Fitting and Integer Programming**
-> M. E. Pinheiro, J. V. Pamplona, V. C. Blau, et al.
+> Maria Eduarda Pinheiro, João Vitor Pamplona, Vitória Caroline Blau, Douglas Soares Gonçalves, Luiz-Rafael Santos, Hugo Jose Lara Urdaneta
 
 ## Overview
 
 This repository implements a two-stage mathematical framework for generating georeferenced synthetic populations from publicly available Brazilian census data:
 
-1. **Family Composition** (Section 2): Iterative Proportional Fitting (IPF) combined with integer rounding (MILP) to synthesize households that preserve intra-household demographic correlations from census microdata.
+1. **Family Composition** (Section 2): Iterative Proportional Fitting (IPF) combined with integer rounding via MILP to synthesize households that preserve intra-household demographic correlations from census microdata.
 
-2. **Household-to-Residence Allocation** (Section 3): A MILP whose constraint matrix is provably totally unimodular (Theorem 2), so the LP relaxation always yields integral solutions. Solved exactly as an LP via the primal simplex method.
+2. **Household-to-Residence Allocation** (Section 3): A MILP formulated as a generalized assignment problem that maximizes a composite objective balancing allocation volume, housing-quality matching, and adherence to census tract targets.
 
-The framework is applied to the state of Santa Catarina, Brazil (8.4 million inhabitants, 295 municipalities).
+The framework is applied to the state of Santa Catarina, Brazil (≈8.4 million inhabitants, 295 municipalities).
 
 ## Repository Structure
 
@@ -27,20 +27,15 @@ SigeSC/
 │
 ├── src/
 │   ├── utils.jl                           # Shared utilities (quality function, demographic types)
-│   ├── 05_ipf_member_allocation.jl        # IPF + MILP rounding (Sections 2.2–2.3) ★
-│   └── 10_allocation_model.jl             # Allocation LP/MILP (Section 3) ★
-│
-├── benchmarks/
-│   └── benchmark_lp_vs_milp.jl            # LP vs MILP comparison (Table 1)
+│   ├── 05_ipf_member_allocation.jl        # IPF + MILP rounding (Sections 2.2–2.3)
+│   └── 10_allocation_model.jl             # Allocation MILP (Section 3)
 │
 └── analysis/
     ├── allocation_quality.jl              # Allocation quality and violations (Figures 4–5)
     └── family_composition_quality.jl      # Intra-household correlations (Figures 1–3)
 ```
 
-Files marked with ★ implement the core methodological contributions of the paper.
-
-**Scope.** This repository contains the optimization models, benchmarks, and validation scripts. Data preparation scripts (residence registry processing, population projection to 2025, census tract matching) are available upon request to the corresponding author.
+**Scope.** This repository contains the optimization models and validation scripts. Data preparation scripts (residence registry processing, population projection to 2025, census tract matching) are available upon request to the corresponding author.
 
 ## Requirements
 
@@ -64,8 +59,8 @@ The pipeline-generated datasets required to run the code are available as zip fi
 
 | File | Size (zip) | Used by |
 |------|-----------|---------|
-| `dataset_familias_2025.csv` | 10 MB | Allocation model, benchmark |
-| `residencias_2025.csv` | 45 MB | Allocation model, benchmark |
+| `dataset_familias_2025.csv` | 10 MB | Allocation model |
+| `residencias_2025.csv` | 45 MB | Allocation model |
 | `dataset_pessoas_com_Ordem_final.csv` | 48 MB | Family composition validation (Figs. 1–3) |
 | `correspondencia_setores.csv` | 176 KB | Census tract gender marginals for constraint (P2d) |
 | `family_and_residences.csv`| 18 MB | Final allocation |
@@ -92,10 +87,10 @@ Two additional files are sourced directly from IBGE (see [`data/README.md`](data
 
 ## Key Results
 
-- **Integrality guarantee**: Every vertex of the LP relaxation polytope is integral (Theorem 2), so the MILP is solved exactly as an LP.
-- **Speedup**: LP relaxation is on average 2.02× faster than the MILP formulation across the 10 largest municipalities.
 - **Allocation rate**: 100% of synthetic families are allocated to georeferenced residences.
-- **Demographic fidelity**: Collective-dwelling population matches the official census count to 99.98%.
+- **Demographic fidelity**: The residual unassigned population (33 563 individuals, corresponding to collective-dwelling residents) matches the official census count (33 556) to 99.98%.
+- **Computational performance**: The allocation MILP is solved in under 25 seconds for all 295 municipalities, including Florianópolis (≈246 000 variables).
+- **Intra-household correlations**: Synthesized households reproduce expected age, gender, and ethnic patterns (spousal age proximity, parent–child age gaps, ethnic homogamy).
 
 ## Citation
 
@@ -104,10 +99,10 @@ Two additional files are sourced directly from IBGE (see [`data/README.md`](data
   title={Synthetic Population Generation and Georeferenced Household
          Allocation via Iterative Proportional Fitting and Integer Programming},
   author={Pinheiro, Maria Eduarda and Pamplona, Jo{\~a}o Vitor and
-          Blau, Vit{\'o}ria Caroline and others},
-  journal={INSERIR},
+          Blau, Vit{\'o}ria Caroline and Gon{\c{c}}alves, Douglas Soares and
+          Santos, Luiz-Rafael and Lara~Urdaneta, Hugo Jose},
   year={2026},
-  note={Submitted}
+  note={Preprint}
 }
 ```
 
@@ -117,4 +112,4 @@ MIT
 
 ## Acknowledgements
 
-This research was supported by CNPq under project CNPq/MCTI/FNDCT 444264/2024-8.
+This research was supported by CNPq under project CNPq/MCTI/FNDCT 444264/2024-8. M.E.P. was funded by CNPq grants 314788/2025-5 and partially by 409837/2025-3. V.C.B. was funded by CNPq grant 198186/2025-8.
